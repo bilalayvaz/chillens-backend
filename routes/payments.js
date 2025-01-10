@@ -9,9 +9,9 @@ router.get('/plans', async (req, res) => {
   console.log('GET /api/payments/plans request received'); // Debug log
   const plans = [
     {
-      tokenAmount: "1000000000000000000",
+      tokenAmount: "30000000000000000000",
       credits: 50,
-      price: 1
+      price: 30
     },
     {
       tokenAmount: "120000000000000000000", 

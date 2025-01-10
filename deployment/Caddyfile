@@ -1,123 +1,35 @@
-# Caddyfile
-
 # Global ayarlar
 {
-    # Admin API'yi kapatma (güvenlik için)
+    email admin@chillens.xyz
     admin off
-
-    # Debug modunu kapatma
-    debug off
-
-    # ACME (Let's Encrypt) ayarları
-    email chillens.lens@gmail.com
-    
-    # Global rate limiting için storage tanımı
-    storage rate_limit {
-        redis {
-            url localhost:6379
-            prefix caddy_rate_limit
-            timeout 5s
-        }
-    }
 }
 
 # API Subdomain
 api.chillens.xyz {
     # TLS/SSL ayarları
     tls {
-        protocols tls1.3 tls1.2
-        ciphers TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-        curves x25519 secp521r1 secp384r1 secp256r1
+        protocols tls1.2 tls1.3
     }
+    reverse_proxy localhost:3000/api
 
     # Güvenlik başlıkları
     header {
         # HSTS
-        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-        
+        Strict-Transport-Security "max-age=63072000; includeSubDomains"
         # XSS Protection
         X-XSS-Protection "1; mode=block"
-        
         # Content Type güvenliği
         X-Content-Type-Options "nosniff"
-        
         # Clickjacking koruması
         X-Frame-Options "DENY"
-        
-        # Referrer Policy
-        Referrer-Policy "strict-origin-when-cross-origin"
-        
-        # Content Security Policy
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.chillens.xyz; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-        
-        # Permissions Policy
-        Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
-
-        # CORS - Frontend için
-        Access-Control-Allow-Origin "{$FRONTEND_URL}"
+        # CORS
+        Access-Control-Allow-Origin "https://chillens.xyz"
         Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-        Access-Control-Allow-Headers "Content-Type, Authorization, Accept"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
         Access-Control-Allow-Credentials "true"
-        Access-Control-Max-Age "86400"
-        
-        # Response headerlarını kaldır
-        -Server
-        -X-Powered-By
     }
 
-    # DDoS ve Rate Limiting koruması
-    @ddos {
-        expression `{http.rate_limit.exceeded}`
-    }
-    
-    # Global rate limit (tüm istekler için)
-    rate_limit {
-        zone global {
-            events 100
-            window 10s
-        }
-    }
-
-    # Auth endpointleri için özel rate limit
-    @auth {
-        path /api/auth/*
-    }
-    rate_limit @auth {
-        zone auth {
-            events 5
-            window 5m
-        }
-    }
-
-    # Post oluşturma için özel rate limit
-    @posts {
-        path /api/aiposts/random
-        path /api/posts/*
-    }
-    rate_limit @posts {
-        zone posts {
-            events 2
-            window 5m
-        }
-    }
-
-    # Bot koruması
-    @bots {
-        header User-Agent ((?i)(bot|crawler|spider|scan|probe))
-        remote_ip private
-    }
-    respond @bots 403 {
-        body "Access denied"
-    }
-
-    # Kötü amaçlı istekleri engelle
-    @bad_paths {
-        path_regexp (?i)(\.php|\.asp|\.aspx|\.exe|\.sh|\.cgi|\.pl|\.dll)$
-        path /wp-* /.env /.git/* /vendor/* /admin/* /backup/* /database/*
-    }
-    respond @bad_paths 444
-
-    # Reverse proxy ayarları
+    # Reverse proxy
     reverse_proxy localhost:3000 {
         # Health check
         health_uri /health
@@ -125,76 +37,19 @@ api.chillens.xyz {
         health_timeout 10s
         health_status 200
 
-        # Upstream header'ları
+        # Headers
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto {scheme}
-        header_up X-Forwarded-Host {host}
-        header_up X-Forwarded-Port {port}
-
-        # Buffer ayarları
-        flush_interval -1
-        buffer_requests
-        buffer_responses
-
-        # Timeout ayarları
-        transport http {
-            dial_timeout 5s
-            response_header_timeout 30s
-            read_timeout 30s
-            write_timeout 30s
-            idle_timeout 120s
-            max_response_header_size 64KB
-        }
-
-        # Retry politikası
-        lb_try_duration 5s
-        lb_try_interval 250ms
     }
 
-    # Gzip sıkıştırma
-    encode {
-        gzip
-        minimum_length 1000
-    }
-
-    # Detaylı loglama
+    # Logging
     log {
-        output file /var/log/caddy/api.chillens.xyz.access.log {
-            roll_size 50MiB
-            roll_keep 10
-            roll_keep_days 30
-        }
-        format json {
-            time_format "iso8601"
-            time_local
-        }
-        level INFO
-        # IP adresi, HTTP metodu, URL, status code, user agent
-        fields {
-            request>remote_ip
-            request>method
-            request>host
-            request>uri
-            response>status
-            request>headers>User-Agent
-        }
-    }
-
-    # Error loglama
-    log {
-        output file /var/log/caddy/api.chillens.xyz.error.log {
-            roll_size 50MiB
-            roll_keep 10
-            roll_keep_days 30
-        }
-        level ERROR
+        output file /var/log/caddy/api.chillens.xyz.log
         format json
+        level INFO
     }
 
-    # File upload limiti
-    limits {
-        header 100KB
-        body 10MB
-    }
+    # Compression
+    encode gzip
 }

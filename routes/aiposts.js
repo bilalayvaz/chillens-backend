@@ -3,7 +3,8 @@ const Aipost = require("../models/Aipost");
 const router = express.Router();
 const { verifyToken } = require('../middleware/auth');
 
-router.get("/random", verifyToken, async (req, res) => {
+
+router.get('/random', verifyToken, async (req, res) => {
   try {
     // Kullanıcı kredisi kontrolü
     const user = req.user;
@@ -33,8 +34,11 @@ router.get("/random", verifyToken, async (req, res) => {
     const randomPost = posts[Math.floor(Math.random() * posts.length)];
     res.json(randomPost);
   } catch (error) {
-    console.error("Error in random post:", error);
-    res.status(500).json({ message: "Error fetching random post.", error: error.message });
+    console.error('Random post error:', error);
+    res.status(500).json({
+      error: 'Failed to generate post',
+      details: error.message
+    });
   }
 });
 
