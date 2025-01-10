@@ -16,9 +16,10 @@ const { setupSecurity } = require('./middleware/security');
 setupSecurity(app);
 
 app.use(cors({
-  origin: 'https://www.chillens.xyz',
+  origin: process.env.FRONTEND_URL,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type, Authorization, Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  exposedHeaders: ['Set-Cookie'],
   credentials: true,
   maxAge: 86400
 }));
@@ -50,8 +51,18 @@ app.use('/api/health', healthRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+  console.error('Error:', {
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+    path: req.path,
+    method: req.method
+  });
+  
+  res.status(err.status || 500).json({
+    error: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : err.message
+  });
 });
 
 // Database connection
