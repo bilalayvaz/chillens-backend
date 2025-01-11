@@ -10,7 +10,7 @@ router.get('/plans', async (req, res) => {
   const plans = [
     {
       tokenAmount: "30000000000000000000",
-      credits: 50,
+      credits: 1,
       price: 30
     },
     {
