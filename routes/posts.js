@@ -27,16 +27,29 @@ router.post('/', verifyToken, async (req, res) => {
 })
 
 // Son 10 postu getir
+// posts.js
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-    res.json(posts)
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    const [posts, total] = await Promise.all([
+      Post.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Post.countDocuments()
+    ]);
+
+    res.json({
+      posts,
+      hasMore: total > skip + posts.length
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-})
+});
 
 // Profil ID'ye göre postları getir
 router.get('/profile/:lensProfileId', verifyToken, async (req, res) => {

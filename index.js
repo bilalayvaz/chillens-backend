@@ -28,8 +28,8 @@ app.use(cors({
 /* app.use(cors({
   origin: 'http://localhost:3000', // Next.js frontend adresiniz
   credentials: true
-}));
- */
+})); */
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: false
