@@ -37,6 +37,7 @@ router.post('/signin', async (req, res) => {
     const token = generateToken(lensProfileId);
 
     // Token'ı cookie olarak ayarla
+    
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

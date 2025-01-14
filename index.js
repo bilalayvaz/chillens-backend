@@ -11,6 +11,7 @@ const port = process.env.PORT || 3000;
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
+
 // Middleware
 const { setupSecurity } = require('./middleware/security');
 setupSecurity(app);
@@ -23,6 +24,11 @@ app.use(cors({
   credentials: true,
   maxAge: 86400
 }));
+
+/* app.use(cors({
+  origin: 'http://localhost:3000', // Next.js frontend adresiniz
+  credentials: true
+})); */
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -66,13 +72,39 @@ app.use((err, req, res, next) => {
 });
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
-    });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
+mongoose.connect(process.env.MONGODB_URI,{
+  maxPoolSize: 25, 
+  minPoolSize: 5,  
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+  serverSelectionTimeoutMS: 5000,
+  family: 4
+})
+.then(() => {
+  console.log('Connected to MongoDB');
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
   });
+})
+.catch((error) => {
+  console.error('MongoDB connection error:', error);
+});
+
+// Bağlantı durumunu izlemek için
+mongoose.connection.on('connected', () => {
+console.log('Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+console.log('Mongoose disconnected');
+});
+
+// Uygulama kapandığında bağlantıyı düzgün şekilde kapat
+process.on('SIGINT', async () => {
+await mongoose.connection.close();
+process.exit(0);
+});
